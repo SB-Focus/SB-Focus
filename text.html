@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSC26 Preparation with Pomodoro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f1f5f9;
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.1);
+            border-radius: 1.25rem;
+        }
+
+        .nav-active { color: #38bdf8; transform: translateY(-3px); text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+        .page-section { display: none; }
+        .page-section.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Timer Circle Animation */
+        .timer-progress {
+            transition: stroke-dashoffset 1s linear;
+        }
+    </style>
+</head>
+<body class="pb-24">
+    <div class="max-w-md mx-auto p-4 space-y-6">
+        <!-- Header -->
+        <header class="flex justify-between items-center py-4">
+            <div>
+                <h1 class="text-2xl font-black bg-gradient-to-r from-sky-400 to-blue-600 bg-clip-text text-transparent">SSC 2026</h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Consistency is Key</p>
+            </div>
+            <div class="glass-card px-4 py-2 flex items-center gap-2">
+                <i class="fas fa-clock text-sky-500 text-xs"></i>
+                <span id="total-focus-display" class="text-xs font-bold text-slate-300">0h 0m</span>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Area -->
+        <main id="main-content">
+            
+            <!-- Tasks Section (Existing) -->
+            <section id="tasks" class="page-section active space-y-4">
+                <div class="flex justify-between items-end">
+                    <h2 class="text-lg font-bold">Today's Focus</h2>
+                    <button onclick="document.getElementById('taskInputArea').classList.toggle('hidden')" class="text-sky-500 text-xs font-bold"><i class="fas fa-plus"></i> Add New</button>
+                </div>
+                
+                <div id="taskInputArea" class="hidden glass-card p-4 space-y-3">
+                    <input id="task-input" type="text" placeholder="What will you learn?" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-sky-500">
+                    <button onclick="addTask()" class="w-full bg-sky-600 hover:bg-sky-500 py-2 rounded-lg text-sm font-bold transition">Add Task</button>
+                </div>
+
+                <div id="task-list" class="space-y-3"></div>
+            </section>
+
+            <!-- Pomodoro Timer Section (New Feature) -->
+            <section id="timer" class="page-section space-y-6">
+                <div class="glass-card p-8 text-center relative overflow-hidden">
+                    <div class="relative z-10">
+                        <h2 id="timer-label" class="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-6">Study Session</h2>
+                        
+                        <!-- Circular Timer -->
+                        <div class="relative w-48 h-48 mx-auto mb-8 flex items-center justify-center">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="96" cy="96" r="88" stroke="currentColor" stroke-width="6" fill="transparent" class="text-slate-800" />
+                                <circle id="timer-circle" cx="96" cy="96" r="88" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="553" stroke-dashoffset="0" class="text-sky-500 timer-progress" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="timer-display" class="text-5xl font-black text-white tracking-tighter">25:00</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 justify-center">
+                            <button id="timer-btn" onclick="toggleTimer()" class="bg-sky-600 hover:bg-sky-500 px-8 py-3 rounded-2xl font-bold transition shadow-lg shadow-sky-900/20">
+                                <i class="fas fa-play mr-2"></i> START
+                            </button>
+                            <button onclick="resetTimer()" class="bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded-2xl font-bold transition">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-card p-4 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Session Goal</div>
+                        <div class="text-sm font-bold text-sky-400">25 Minutes</div>
+                    </div>
+                    <div class="glass-card p-4 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Short Break</div>
+                        <div class="text-sm font-bold text-emerald-400">5 Minutes</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Progress/History (Existing placeholders) -->
+            <section id="stats" class="page-section">
+                <div id="history-list" class="space-y-4"></div>
+            </section>
+
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-slate-950/80 backdrop-blur-xl border-t border-slate-800 px-6 py-4 flex justify-around items-center z-50">
+            <button onclick="showSection('tasks')" id="nav-tasks" class="nav-active flex flex-col items-center gap-1 transition-all duration-300">
+                <i class="fas fa-list-ul text-lg"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Tasks</span>
+            </button>
+            <button onclick="showSection('timer')" id="nav-timer" class="text-slate-500 flex flex-col items-center gap-1 transition-all duration-300">
+                <i class="fas fa-stopwatch text-lg"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Focus</span>
+            </button>
+            <button onclick="showSection('stats')" id="nav-stats" class="text-slate-500 flex flex-col items-center gap-1 transition-all duration-300">
+                <i class="fas fa-chart-pie text-lg"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Stats</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Notification Sound -->
+    <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+    <script>
+        // --- State Management ---
+        let state = {
+            tasks: JSON.parse(localStorage.getItem('ssc26_tasks')) || [],
+            history: JSON.parse(localStorage.getItem('ssc26_history')) || [],
+            totalFocusMinutes: JSON.parse(localStorage.getItem('ssc26_focus_min')) || 0,
+            lastResetDate: localStorage.getItem('ssc26_last_reset') || new Date().toDateString()
+        };
+
+        // --- Pomodoro Logic ---
+        let timerInterval;
+        let timeLeft = 25 * 60;
+        let isRunning = false;
+        let currentMode = 'study'; // 'study' or 'break'
+
+        const timerDisplay = document.getElementById('timer-display');
+        const timerBtn = document.getElementById('timer-btn');
+        const timerLabel = document.getElementById('timer-label');
+        const timerCircle = document.getElementById('timer-circle');
+        const alarmSound = document.getElementById('alarm-sound');
+        const totalFocusDisplay = document.getElementById('total-focus-display');
+
+        function updateTimerUI() {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            // Update Circle
+            const total = currentMode === 'study' ? 25 * 60 : 5 * 60;
+            const offset = 553 - (timeLeft / total) * 553;
+            timerCircle.style.strokeDashoffset = offset;
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                clearInterval(timerInterval);
+                timerBtn.innerHTML = '<i class="fas fa-play mr-2"></i> START';
+                timerBtn.classList.replace('bg-rose-600', 'bg-sky-600');
+            } else {
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    if (currentMode === 'study') {
+                        state.totalFocusMinutes++;
+                        if(timeLeft % 60 === 0) saveStudyData(); 
+                    }
+                    updateTimerUI();
+                    if (timeLeft <= 0) handleTimerEnd();
+                }, 1000);
+                timerBtn.innerHTML = '<i class="fas fa-pause mr-2"></i> PAUSE';
+                timerBtn.classList.replace('bg-sky-600', 'bg-rose-600');
+                
+                // Request Notification Permission
+                if (Notification.permission !== 'granted') Notification.requestPermission();
+            }
+            isRunning = !isRunning;
+        }
+
+        function handleTimerEnd() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            alarmSound.play();
+            
+            // Show Notification
+            if (Notification.permission === 'granted') {
+                new Notification(currentMode === 'study' ? "Study Time Over!" : "Break Over!", {
+                    body: currentMode === 'study' ? "Time for a 5-min break." : "Let's get back to study!",
+                    icon: "https://cdn-icons-png.flaticon.com/512/2972/2972531.png"
+                });
+            }
+
+            if (currentMode === 'study') {
+                currentMode = 'break';
+                timeLeft = 5 * 60;
+                timerLabel.innerText = "Short Break";
+                timerLabel.classList.replace('text-slate-400', 'text-emerald-400');
+            } else {
+                currentMode = 'study';
+                timeLeft = 25 * 60;
+                timerLabel.innerText = "Study Session";
+                timerLabel.classList.replace('text-emerald-400', 'text-slate-400');
+            }
+            
+            timerBtn.innerHTML = '<i class="fas fa-play mr-2"></i> START';
+            timerBtn.classList.replace('bg-rose-600', 'bg-sky-600');
+            updateTimerUI();
+            saveStudyData();
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            currentMode = 'study';
+            timeLeft = 25 * 60;
+            timerLabel.innerText = "Study Session";
+            timerBtn.innerHTML = '<i class="fas fa-play mr-2"></i> START';
+            updateTimerUI();
+        }
+
+        function saveStudyData() {
+            const today = new Date().toDateString();
+            if (state.lastResetDate !== today) {
+                state.totalFocusMinutes = 0;
+                state.lastResetDate = today;
+            }
+            localStorage.setItem('ssc26_focus_min', state.totalFocusMinutes);
+            localStorage.setItem('ssc26_last_reset', state.lastResetDate);
+            renderStats();
+        }
+
+        function renderStats() {
+            const h = Math.floor(state.totalFocusMinutes / 60);
+            const m = state.totalFocusMinutes % 60;
+            totalFocusDisplay.innerText = `${h}h ${m}m`;
+        }
+
+        // --- Core App Functionality ---
+        function showSection(id) {
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active', 'text-slate-500'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.add('text-slate-500'));
+            
+            document.getElementById(id).classList.add('active');
+            document.getElementById(`nav-${id}`).classList.add('nav-active');
+            document.getElementById(`nav-${id}`).classList.remove('text-slate-500');
+
+            if(id === 'stats') renderHistory();
+        }
+
+        function addTask() {
+            const input = document.getElementById('task-input');
+            if (input.value.trim()) {
+                state.tasks.push({ id: Date.now(), text: input.value, done: false });
+                input.value = '';
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        function toggleTask(id) {
+            state.tasks = state.tasks.map(t => t.id === id ? {...t, done: !t.done} : t);
+            saveTasks();
+            renderTasks();
+        }
+
+        function deleteTask(id) {
+            state.tasks = state.tasks.filter(t => t.id !== id);
+            saveTasks();
+            renderTasks();
+        }
+
+        function saveTasks() {
+            localStorage.setItem('ssc26_tasks', JSON.stringify(state.tasks));
+        }
+
+        function renderTasks() {
+            const list = document.getElementById('task-list');
+            if (state.tasks.length === 0) {
+                list.innerHTML = `<div class="text-center p-8 text-slate-600 text-xs italic">No tasks for today. Start small!</div>`;
+                return;
+            }
+            list.innerHTML = state.tasks.map(t => `
+                <div class="glass-card p-4 flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleTask(${t.id})" class="w-5 h-5 rounded-full border-2 ${t.done ? 'bg-sky-500 border-sky-500' : 'border-slate-700'} flex items-center justify-center transition">
+                            ${t.done ? '<i class="fas fa-check text-[10px] text-white"></i>' : ''}
+                        </button>
+                        <span class="text-sm ${t.done ? 'line-through text-slate-500' : 'text-slate-200'}">${t.text}</span>
+                    </div>
+                    <button onclick="deleteTask(${t.id})" class="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-rose-500 transition">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderHistory() {
+            // Simplified History for this version
+            const container = document.getElementById('history-list');
+            container.innerHTML = `
+                <div class="glass-card p-6 text-center">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Focus Record</h3>
+                    <div class="text-4xl font-black text-sky-500 mb-1">${Math.floor(state.totalFocusMinutes / 60)}h ${state.totalFocusMinutes % 60}m</div>
+                    <p class="text-[10px] text-slate-400">Total focused study time today</p>
+                </div>
+            `;
+        }
+
+        // Init
+        window.onload = () => {
+            renderTasks();
+            renderStats();
+            updateTimerUI();
+            
+            // Check if it's a new day to reset focused hours
+            const today = new Date().toDateString();
+            if (state.lastResetDate !== today) {
+                state.totalFocusMinutes = 0;
+                state.lastResetDate = today;
+                localStorage.setItem('ssc26_focus_min', 0);
+                localStorage.setItem('ssc26_last_reset', today);
+                renderStats();
+            }
+        };
+    </script>
+</body>
+</html>
